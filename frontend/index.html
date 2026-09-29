@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Victim Monitoring & Check-in Portal</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0; padding: 0; }
+    
+    body { 
+      background-color: var(--bg-color); 
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      color: #ffffff;
+      padding: 28px 32px;
+    }
+
+    .header h2 { font-size: 1.4rem; font-weight: 600; }
+    .header p { color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }
+
+    .form-body { padding: 32px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 480px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .form-group { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      background-color: #f8fafc;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea { resize: vertical; min-height: 110px; }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .submit-btn:hover { background: var(--primary-hover); }
+
+    #result {
+      margin-top: 24px;
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .result-header {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 0.9rem;
+    }
+
+    .result-item {
+      background: rgba(255, 255, 255, 0.6);
+      padding: 10px 12px;
+      border-radius: 6px;
+    }
+
+    .result-item span { display: block; font-size: 0.75rem; color: #475569; font-weight: 600; }
+    .result-item strong { font-size: 1rem; }
+
+    .Green { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .Green .badge { background: #22c55e; color: white; }
+    
+    .Red { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .Red .badge { background: #ef4444; color: white; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h2>Victim Distress Check-in</h2>
+      <p>Smartphone Portal & Caseworker Field Intake</p>
+    </div>
+
+    <form id="checkinForm" class="form-body">
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="victimId">Victim / User ID</label>
+          <input type="text" id="victimId" placeholder="e.g. V-1092" required>
+        </div>
+
+        <div class="form-group">
+          <label for="channel">Intake Channel</label>
+          <select id="channel">
+            <option value="web_victim">Victim Smartphone App</option>
+            <option value="caseworker">Caseworker Field Log</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="message">Status Update / Observation Log</label>
+        <textarea id="message" placeholder="Enter status update, concerns, or ground observations..." required></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn">Submit Check-in Log</button>
+
+      <div id="result"></div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('checkinForm');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const payload = {
+        victim_id: document.getElementById('victimId').value,
+        channel: document.getElementById('channel').value,
+        message_text: document.getElementById('message').value
+      };
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/v1/checkin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        resultDiv.className = data.risk_level;
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+          <div class="result-header">
+            <span>Check-in Logged</span>
+            <span class="badge">${data.risk_level} Risk</span>
+          </div>
+          <div class="result-grid">
+            <div class="result-item">
+              <span>Log Entry ID</span>
+              <strong>#${data.id}</strong>
+            </div>
+            <div class="result-item">
+              <span>Distress Score</span>
+              <strong>${data.distress_score} / 100</strong>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        alert("Unable to reach FastAPI backend server.");
+      }
+    });
+  </script>
+</body>
+</html>

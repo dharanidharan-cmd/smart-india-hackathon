@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caseworker Admin Triage Dashboard</title>
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --border-color: #e2e8f0;
+      --red-bg: #fef2f2; --red-text: #991b1b;
+      --green-bg: #f0fdf4; --green-text: #166534;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 24px; }
+    
+    .header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 1.6rem; color: #1e293b; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .stat-card span { font-size: 0.85rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
+    .stat-card h2 { font-size: 1.8rem; margin-top: 8px; }
+
+    .table-container { background: white; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 14px 18px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+    th { background: #f1f5f9; color: #475569; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    
+    .badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+    .badge-Red { background: #ef4444; color: white; }
+    .badge-Green { background: #22c55e; color: white; }
+
+    .refresh-btn { background: #2563eb; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .refresh-btn:hover { background: #1d4ed8; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>SC/ST Distress Monitoring Dashboard</h1>
+      <p style="color: #64748b; font-size: 0.9rem;">Real-time field & telephony triage logs</p>
+    </div>
+    <button class="refresh-btn" onclick="fetchLogs()">🔄 Refresh Data</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span>Total Check-ins</span>
+      <h2 id="totalCount">0</h2>
+    </div>
+    <div class="stat-card" style="border-left: 4px solid #ef4444;">
+      <span>High Risk (Red Alerts)</span>
+      <h2 id="redCount" style="color: #dc2626;">0</h2>
+    </div>
+    <div class="stat-card" style="border-left: 4px solid #22c55e;">
+      <span>Low Risk (Green)</span>
+      <h2 id="greenCount" style="color: #16a34a;">0</h2>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Victim ID</th>
+          <th>Channel</th>
+          <th>Message / Transcript</th>
+          <th>Distress Score</th>
+          <th>Risk Level</th>
+        </tr>
+      </thead>
+      <tbody id="logsTableBody">
+        <tr><td colspan="6" style="text-align: center; color: #94a3b8;">Loading monitoring logs...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    async function fetchLogs() {
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/v1/admin/checkins');
+        const logs = await res.json();
+
+        const tbody = document.getElementById('logsTableBody');
+        tbody.innerHTML = '';
+
+        let total = logs.length;
+        let red = 0;
+        let green = 0;
+
+        if (logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No logs found.</td></tr>';
+          return;
+        }
+
+        logs.forEach(log => {
+          if (log.risk_level === 'Red') red++;
+          if (log.risk_level === 'Green') green++;
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><strong>#${log.id}</strong></td>
+            <td>${log.victim_id}</td>
+            <td><code>${log.channel}</code></td>
+            <td>${log.message_text}</td>
+            <td><strong>${log.distress_score}/100</strong></td>
+            <td><span class="badge badge-${log.risk_level}">${log.risk_level}</span></td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        document.getElementById('totalCount').innerText = total;
+        document.getElementById('redCount').innerText = red;
+        document.getElementById('greenCount').innerText = green;
+
+      } catch (err) {
+        console.error("Error fetching logs:", err);
+      }
+    }
+
+    // Load data on page launch
+    fetchLogs();
+  </script>
+</body>
+</html>
